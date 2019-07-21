@@ -1,11 +1,15 @@
+extern crate regex;
+
 use std::fs::File;
 use std::path::Path;
-use std::error::Error;
+use regex::Regex;
 use std::io::{ self , Read };
 
 fn main() {
     let text: String = get_text("big.txt").unwrap().to_lowercase();
-    let words = get_words(&text);
+    let re = Regex::new(r"[[:^alpha:]]").unwrap();
+    let stripped_text = re.replace_all(&text, " ");
+    let words = get_words(&stripped_text);
     let all_words = words.into_iter().fold(vec![], |mut collection, line| {
         collection.extend(line);
         collection

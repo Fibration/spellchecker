@@ -15,10 +15,7 @@ fn main() {
 
     // the lines are embedded as vectors within a larger vector
     // need to flatten the vector
-    let all_words = words.into_iter().fold(vec![], |mut collection, line| {
-        collection.extend(line);
-        collection
-    });
+    let all_words = words.into_iter().flatten().collect();
 
     // create a hashmap counting occurences of each word
     let freq_map = create_frequency_map(all_words);
@@ -44,6 +41,40 @@ fn create_frequency_map<'a>(corpus: Vec<&'a str>) -> HashMap<&'a str, u64> {
         *map.entry(word).or_insert(0) += 1;
         map
     })
+}
+
+fn generate_possible_corrections(word: &str) -> Vec<String> {
+    let alphabet: Vec<char> = "abcdefghijklmnopqrstuvwxyz".chars().collect();
+    let mut corrections: Vec<String> = vec![];
+    let length = word.len();
+
+    // deletes
+    let dels: Vec<String> = word.char_indices().map(|letter| {
+        word.char_indices().filter(|&c| c!=letter).map(|c| c.1).collect()
+    }).collect();
+    corrections.extend(dels);
+
+    // substitutions
+    let subs: Vec<String> = alphabet.iter().map(|&c| {
+        word.char_indices().map(|d| {
+            word.char_indices().map(|e| {
+                if e == d {
+                    c
+                } else {
+                    e.1
+                }
+            }).collect()
+        }).collect()
+    }).into_iter().flatten().collect();
+    corrections.extend(subs);
+
+    corrections
+}
+
+fn get_closest(word: &str, freq_map: &HashMap<String,u64>) -> String {
+    let mut closest: String = String::from(word);
+    
+    closest
 }
 
 #[test]
@@ -76,3 +107,11 @@ fn test_vec_to_hash() {
     assert_eq!(2 as u64, hash["many"]);
 }
 
+#[test]
+fn test_corrections() {
+    let corr = vec!["he", "te", "th", "ahe", "tae"];
+    assert_eq!(
+        corr,
+        generate_possible_corrections("the")[..5].to_vec()
+    );
+}

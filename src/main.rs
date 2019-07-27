@@ -43,10 +43,11 @@ fn create_frequency_map<'a>(corpus: Vec<&'a str>) -> HashMap<&'a str, u64> {
     })
 }
 
-fn generate_possible_corrections(word: &str) -> Vec<String> {
+fn generate_corrections(word: &str) -> Vec<String> {
     let alphabet: Vec<char> = "abcdefghijklmnopqrstuvwxyz".chars().collect();
-    let mut corrections: Vec<String> = vec![];
-    let length = word.len();
+    let mut corrections: Vec<String> = Vec::new();
+    corrections.push(String::from(word));
+    //let length = word.len();
 
     // deletes
     let dels: Vec<String> = word.char_indices().map(|letter| {
@@ -64,17 +65,33 @@ fn generate_possible_corrections(word: &str) -> Vec<String> {
                     e.1
                 }
             }).collect()
-        }).collect()
-    }).into_iter().flatten().collect();
+        }).collect::<Vec<String>>()
+    }).flatten().collect();
     corrections.extend(subs);
-
+    
+    corrections.sort();
+    corrections.dedup();
     corrections
 }
 
-fn get_closest(word: &str, freq_map: &HashMap<String,u64>) -> String {
-    let mut closest: String = String::from(word);
-    
-    closest
+fn get_known(words: Vec<String>, freq_map: &HashMap<String,u64>) -> Vec<String> {
+    words.into_iter().filter(|word| freq_map.contains_key(&word[..])).map(|word| word).collect()
+}
+
+fn get_candidates(word: String, freq_map: &HashMap<String,u64>) -> Vec<String> {
+    if !get_known(vec![word.clone()], &freq_map.clone()).is_empty() {
+        vec![word]
+    } else {
+        get_known(generate_corrections(&word), &freq_map.clone())
+    }
+}
+
+fn get_correction(word: String, freq_map: &HashMap<String,u64>) -> String {
+    let candidates = get_candidates(word, freq_map);
+    let index: usize = candidates.clone().into_iter().map(
+        |candidate| freq_map[&candidate]
+    ).enumerate().max_by_key(|&(_, item)| item).unwrap().0;
+    candidates[index].clone()
 }
 
 #[test]
@@ -112,6 +129,18 @@ fn test_corrections() {
     let corr = vec!["he", "te", "th", "ahe", "tae"];
     assert_eq!(
         corr,
-        generate_possible_corrections("the")[..5].to_vec()
+        generate_corrections("the")[..5].to_vec()
+    );
+}
+
+#[test]
+fn test_get_correction() {
+    let mut freq_map: HashMap<String, u64> = HashMap::new();
+    freq_map.insert(String::from("free"), 10);
+    freq_map.insert(String::from("freed"), 4);
+
+    assert_eq!(
+        String::from("free"),
+        get_correction(String::from("freee"), &freq_map)
     );
 }

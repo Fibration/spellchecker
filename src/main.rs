@@ -19,7 +19,27 @@ fn main() {
 
     // create a hashmap counting occurences of each word
     let freq_map = create_frequency_map(all_words);
+    println!("Got a dictionary.");
 
+    
+    loop {
+        println!("Please input your guess.");
+
+        let mut guess = String::new();
+
+        io::stdin().read_line(&mut guess)
+            .expect("Failed to read line");
+
+
+        if &guess == "QUIT" {
+            break
+        } else {
+            println!("{}",get_correction(String::from(&guess[..]), &freq_map));
+        }
+    
+        
+    }
+    
 }
 
 fn get_text(s: &str) -> io::Result<String> {
@@ -36,45 +56,67 @@ fn get_words<'a>(text: &'a str) -> Vec<Vec<&'a str>> {
     }).collect()
 }
 
-fn create_frequency_map<'a>(corpus: Vec<&'a str>) -> HashMap<&'a str, u64> {
-    corpus.iter().fold(HashMap::new(), |mut map, word| {
-        *map.entry(word).or_insert(0) += 1;
+fn create_frequency_map(corpus: Vec<&str>) -> HashMap<String, u64> {
+    corpus.into_iter().fold(HashMap::new(), |mut map, word| {
+        *map.entry(String::from(word)).or_insert(0) += 1;
         map
     })
 }
 
+fn get_dictionary() -> HashMap<String, u64> {
+    let text: String = get_text("big.txt").unwrap().to_lowercase();
+    let re = Regex::new(r"[[:^alpha:]]").unwrap();
+    let stripped_text = re.replace_all(&text, " ");
+    let words = get_words(&stripped_text);
+    let all_words = words.into_iter().flatten().collect();
+
+    create_frequency_map(all_words)
+}
+
 fn generate_corrections(word: &str) -> Vec<String> {
     let alphabet: Vec<char> = "abcdefghijklmnopqrstuvwxyz".chars().collect();
-    let mut corrections: Vec<String> = Vec::new();
-    corrections.push(String::from(word));
+    // let mut corrections: Vec<String> = Vec::new();
+    // corrections.push(String::from(word));
     //let length = word.len();
 
-    // deletes
-    let dels: Vec<String> = word.char_indices().map(|letter| {
-        word.char_indices().filter(|&c| c!=letter).map(|c| c.1).collect()
-    }).collect();
-    corrections.extend(dels);
+    let mut corrections: Vec<String> = word.char_indices().map(|c| {
+        let (left, right) = word.split_at(c.0);
+        // deletes
+        let del: String = format!("{}{}", &left, &right[1..]);
+        let trans: String = if right.len() > 1 {
+            format!(
+                "{}{}{}{}", 
+                &left,
+                &right[1..2],
+                &right[0..1],
+                &right[2..]
+            )
+        } else {
+            format!("{}{}", &left, &right)
+        };
+        let sub: Vec<String> = alphabet.iter().map(|&d| {
+            format!("{}{}{}", &left, d, &right[1..])
+        }).collect();
+        let ins: Vec<String> = alphabet.iter().map(|&d| {
+            format!("{}{}{}", &left, d, &right)
+        }).collect();
 
-    // substitutions
-    let subs: Vec<String> = alphabet.iter().map(|&c| {
-        word.char_indices().map(|d| {
-            word.char_indices().map(|e| {
-                if e == d {
-                    c
-                } else {
-                    e.1
-                }
-            }).collect()
-        }).collect::<Vec<String>>()
+        let mut corrections = vec![del, trans];
+        corrections.extend(sub);
+        corrections.extend(ins);
+        corrections
     }).flatten().collect();
-    corrections.extend(subs);
-    
+
+    //add the insertions at the end
+    let end_insertions: Vec<String> = alphabet.iter().map(|&c| format!("{}{}", word, c)).collect();
+    corrections.extend(end_insertions);
     corrections.sort();
     corrections.dedup();
     corrections
 }
 
 fn get_known(words: Vec<String>, freq_map: &HashMap<String,u64>) -> Vec<String> {
+    println!("{:?}", freq_map["spelling"]);
     words.into_iter().filter(|word| freq_map.contains_key(&word[..])).map(|word| word).collect()
 }
 
@@ -82,15 +124,18 @@ fn get_candidates(word: String, freq_map: &HashMap<String,u64>) -> Vec<String> {
     if !get_known(vec![word.clone()], &freq_map.clone()).is_empty() {
         vec![word]
     } else {
-        get_known(generate_corrections(&word), &freq_map.clone())
+        return get_known(generate_corrections(&word), &freq_map.clone())
     }
 }
 
 fn get_correction(word: String, freq_map: &HashMap<String,u64>) -> String {
+    println!("{}", &word);
     let candidates = get_candidates(word, freq_map);
+    println!("Candidates are {:?}", candidates);
     let index: usize = candidates.clone().into_iter().map(
         |candidate| freq_map[&candidate]
     ).enumerate().max_by_key(|&(_, item)| item).unwrap().0;
+    println!("Candidate number {}.", index);
     candidates[index].clone()
 }
 
@@ -125,11 +170,23 @@ fn test_vec_to_hash() {
 }
 
 #[test]
-fn test_corrections() {
-    let corr = vec!["he", "te", "th", "ahe", "tae"];
+fn test_get_dictionary() {
+    let dict: HashMap<String, u64> = get_dictionary();
+    
     assert_eq!(
-        corr,
-        generate_corrections("the")[..5].to_vec()
+        4,
+        dict["spelling"]
+    )
+}
+
+#[test]
+fn test_corrections() {
+    let mut corr = vec!["he", "te", "th", "ahe", "tae", "tha", "bhe", "tbe", "thb", "che", "tce", "thc"];
+    corr.sort();
+    println!("{:?}",generate_corrections("speling"));
+    assert_eq!(
+        corr[..3].to_vec(),
+        generate_corrections("the")[..3].to_vec()
     );
 }
 
@@ -143,4 +200,11 @@ fn test_get_correction() {
         String::from("free"),
         get_correction(String::from("freee"), &freq_map)
     );
+}
+
+#[test]
+fn test_1() {
+    let dict: HashMap<String,u64> = get_dictionary();
+    
+    assert_eq!(String::from("spelling"), get_correction(String::from("speling"), &dict));
 }

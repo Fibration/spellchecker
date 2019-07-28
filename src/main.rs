@@ -7,18 +7,7 @@ use std::io::{ self , Read };
 use std::collections::HashMap;
 
 fn main() {
-    // read the Gutenberg sample, clean it of punctuation and get the words from it
-    let text: String = get_text("big.txt").unwrap().to_lowercase();
-    let re = Regex::new(r"[[:^alpha:]]").unwrap();
-    let stripped_text = re.replace_all(&text, " ");
-    let words = get_words(&stripped_text);
-
-    // the lines are embedded as vectors within a larger vector
-    // need to flatten the vector
-    let all_words = words.into_iter().flatten().collect();
-
-    // create a hashmap counting occurences of each word
-    let freq_map = create_frequency_map(all_words);
+    let freq_map = get_dictionary();
     println!("Got a dictionary.");
 
     
@@ -124,7 +113,7 @@ fn get_candidates(word: String, freq_map: &HashMap<String,u64>) -> Vec<String> {
     if !get_known(vec![word.clone()], &freq_map.clone()).is_empty() {
         vec![word]
     } else {
-        return get_known(generate_corrections(&word), &freq_map.clone())
+        get_known(generate_corrections(&word), &freq_map.clone())
     }
 }
 

@@ -10,25 +10,15 @@ fn main() {
     let freq_map = get_dictionary();
     println!("Got a dictionary.");
 
-    
     loop {
-        println!("Please input your guess.");
-
+        println!("Please input your word:");
         let mut guess = String::new();
 
         io::stdin().read_line(&mut guess)
             .expect("Failed to read line");
 
-
-        if &guess == "QUIT" {
-            break
-        } else {
-            println!("{}",get_correction(String::from(&guess[..]), &freq_map));
-        }
-    
-        
+            get_correction(String::from(&guess[..]), &freq_map);
     }
-    
 }
 
 fn get_text(s: &str) -> io::Result<String> {

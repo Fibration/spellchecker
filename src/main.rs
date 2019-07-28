@@ -64,9 +64,6 @@ fn get_dictionary() -> HashMap<String, u64> {
 
 fn generate_corrections(word: &str) -> Vec<String> {
     let alphabet: Vec<char> = "abcdefghijklmnopqrstuvwxyz".chars().collect();
-    // let mut corrections: Vec<String> = Vec::new();
-    // corrections.push(String::from(word));
-    //let length = word.len();
 
     let mut corrections: Vec<String> = word.char_indices().map(|c| {
         let (left, right) = word.split_at(c.0);
@@ -112,18 +109,33 @@ fn get_candidates(word: String, freq_map: &HashMap<String,u64>) -> Vec<String> {
     if !get_known(vec![word.clone()], &freq_map.clone()).is_empty() {
         vec![word]
     } else {
-        get_known(generate_corrections(&word), &freq_map.clone())
+        let first_order: Vec<String> = generate_corrections(&word);
+        let known_first_order: Vec<String> = get_known(first_order.clone(), &freq_map.clone());
+        if !known_first_order.is_empty() {
+            known_first_order
+        } else {
+            let second_order: Vec<String> = first_order.iter().map(|first| {
+                generate_corrections(&first)
+            }).flatten().collect();
+            get_known(second_order, &freq_map.clone())
+        }
     }
 }
 
 fn get_correction(word: String, freq_map: &HashMap<String,u64>) -> String {
     print!("Getting corrections for '{}'...", &word);
     let candidates = get_candidates(word.clone(), freq_map);
-    let index: usize = candidates.clone().into_iter().map(
+    if candidates.is_empty() {
+        println!("No corrections available for {}", &word);
+        word
+    } else {
+        let index: usize = candidates.clone().into_iter().map(
         |candidate| freq_map[&candidate]
     ).enumerate().max_by_key(|&(_, item)| item).unwrap().0;
     println!("Correction for '{}' is '{}'", &word, candidates[index].clone());
     candidates[index].clone()
+    }
+    
 }
 
 #[test]
@@ -194,4 +206,12 @@ fn test_1() {
     let dict: HashMap<String,u64> = get_dictionary();
     
     assert_eq!(String::from("spelling"), get_correction(String::from("speling"), &dict));
+    assert_eq!(String::from("corrected"), get_correction(String::from("korrectud"), &dict));
+    assert_eq!(String::from("bicycle"), get_correction(String::from("bycycle"), &dict));
+    assert_eq!(String::from("inconvenient"), get_correction(String::from("inconvient"), &dict));
+    assert_eq!(String::from("arranged"), get_correction(String::from("arrainged"), &dict));
+    assert_eq!(String::from("poetry"), get_correction(String::from("peotry"), &dict));
+    assert_eq!(String::from("poetry"), get_correction(String::from("peotryy"), &dict));
+    assert_eq!(String::from("word"), get_correction(String::from("word"), &dict));
+    assert_eq!(String::from("quintessential"), get_correction(String::from("quintessential"), &dict));
 }

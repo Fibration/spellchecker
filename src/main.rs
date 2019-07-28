@@ -105,7 +105,6 @@ fn generate_corrections(word: &str) -> Vec<String> {
 }
 
 fn get_known(words: Vec<String>, freq_map: &HashMap<String,u64>) -> Vec<String> {
-    println!("{:?}", freq_map["spelling"]);
     words.into_iter().filter(|word| freq_map.contains_key(&word[..])).map(|word| word).collect()
 }
 
@@ -118,13 +117,12 @@ fn get_candidates(word: String, freq_map: &HashMap<String,u64>) -> Vec<String> {
 }
 
 fn get_correction(word: String, freq_map: &HashMap<String,u64>) -> String {
-    println!("{}", &word);
-    let candidates = get_candidates(word, freq_map);
-    println!("Candidates are {:?}", candidates);
+    print!("Getting corrections for '{}'...", &word);
+    let candidates = get_candidates(word.clone(), freq_map);
     let index: usize = candidates.clone().into_iter().map(
         |candidate| freq_map[&candidate]
     ).enumerate().max_by_key(|&(_, item)| item).unwrap().0;
-    println!("Candidate number {}.", index);
+    println!("Correction for '{}' is '{}'", &word, candidates[index].clone());
     candidates[index].clone()
 }
 

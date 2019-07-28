@@ -169,17 +169,6 @@ fn test_get_dictionary() {
 }
 
 #[test]
-fn test_corrections() {
-    let mut corr = vec!["he", "te", "th", "ahe", "tae", "tha", "bhe", "tbe", "thb", "che", "tce", "thc"];
-    corr.sort();
-    println!("{:?}",generate_corrections("speling"));
-    assert_eq!(
-        corr[..3].to_vec(),
-        generate_corrections("the")[..3].to_vec()
-    );
-}
-
-#[test]
 fn test_get_correction() {
     let mut freq_map: HashMap<String, u64> = HashMap::new();
     freq_map.insert(String::from("free"), 10);
